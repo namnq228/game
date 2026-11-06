@@ -792,6 +792,131 @@ const G = {
   foreArm: new THREE.CylinderGeometry(.08, .13, .28, 8).translate(0, -.14, 0),
   hand: new THREE.SphereGeometry(.05, 8, 6),
 };
+const lathe = (pts, seg = 20) => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), seg);
+// dáng nữ: váy xòe, eo thon, ngực/vai mềm, cổ cao, tay áo rộng
+const GF = {
+  robe: lathe([[.001, 0], [.45, 0], [.43, .12], [.37, .4], [.29, .7], [.21, .95], [.165, 1.1], [.001, 1.1]]),
+  hem: new THREE.CylinderGeometry(.46, .46, .06, 20).translate(0, .04, 0),
+  torso: lathe([[.001, 0], [.165, 0], [.17, .08], [.185, .2], [.19, .27], [.175, .36], [.15, .44], [.1, .5], [.06, .54], [.001, .54]]).scale(1, 1, .82),
+  sash: new THREE.CylinderGeometry(.176, .176, .06, 18).scale(1, 1, .84),
+  sashEnd: new THREE.BoxGeometry(.045, .2, .012).translate(0, -.1, 0),
+  collar: new THREE.TorusGeometry(.056, .016, 6, 16),
+  neck: new THREE.CylinderGeometry(.042, .05, .18, 10).translate(0, .59, 0),
+  head: (() => { // nửa dưới thon lại thành cằm trái xoan
+    const g = new THREE.SphereGeometry(.16, 28, 20), p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const y = p.getY(i); if (y >= 0) continue;
+      const k = Math.pow(-y / .16, 1.6);
+      p.setX(i, p.getX(i) * (1 - .3 * k)); p.setZ(i, p.getZ(i) * (1 - .1 * k)); p.setY(i, y * (1 + .08 * k));
+    }
+    g.computeVertexNormals(); return g;
+  })(),
+  cap: new THREE.SphereGeometry(.172, 24, 12, 0, Math.PI * 2, 0, Math.PI * .55),
+  bun: new THREE.SphereGeometry(.1, 14, 12),
+  coil: new THREE.TorusGeometry(.08, .03, 8, 20),
+  lock: new THREE.SphereGeometry(.03, 8, 8),
+  earring: new THREE.SphereGeometry(.012, 6, 6),
+  petal: new THREE.SphereGeometry(.022, 6, 6),
+  shoulder: new THREE.SphereGeometry(.068, 10, 8),
+  upperArm: new THREE.CylinderGeometry(.052, .068, .3, 10).translate(0, -.15, 0),
+  sleeve: new THREE.CylinderGeometry(.068, .13, .29, 12, 1, true).translate(0, -.145, 0),
+  wrist: new THREE.CylinderGeometry(.024, .028, .1, 8).translate(0, .02, 0),
+  hand: new THREE.SphereGeometry(.042, 10, 8).scale(.72, 1.45, .45).translate(0, -.045, 0),
+};
+
+// mặt vẽ lên quả cầu đầu (u = .25 là hướng +z), gồm cả chân tóc rẽ ngôi
+function faceTex() {
+  const [c, g] = makeCanvas(512, 256), cx = 128;
+  g.fillStyle = '#f0c9a2'; g.fillRect(0, 0, 512, 256);
+  for (const s of [-1, 1]) {
+    const r = g.createRadialGradient(cx + s * 36, 144, 2, cx + s * 36, 144, 24);
+    r.addColorStop(0, 'rgba(236,124,124,.5)'); r.addColorStop(1, 'rgba(236,124,124,0)');
+    g.fillStyle = r; g.fillRect(cx + s * 36 - 26, 118, 52, 52);
+  }
+  const hair = [[256, 176], [112, 174], [94, 150], [80, 116], [62, 84], [34, 66], [8, 64], [0, 72], [-8, 64], [-34, 66], [-62, 84], [-80, 116], [-94, 150], [-112, 174], [-256, 176]];
+  g.fillStyle = '#15100c';
+  for (const off of [cx, cx + 512]) {
+    g.beginPath(); g.moveTo(off - 256, 0); g.lineTo(off + 256, 0);
+    hair.forEach(([d, y]) => g.lineTo(off + d, y));
+    g.closePath(); g.fill();
+  }
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  for (const s of [-1, 1]) {
+    // mày lá liễu
+    g.strokeStyle = '#2a1a12'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(cx + s * 11, 102); g.quadraticCurveTo(cx + s * 24, 94, cx + s * 38, 100); g.stroke();
+    // mắt hạnh nhân
+    const ex = cx + s * 25, ey = 117;
+    g.save();
+    g.beginPath(); g.moveTo(ex - 13, ey); g.quadraticCurveTo(ex, ey - 10, ex + 13, ey); g.quadraticCurveTo(ex, ey + 7, ex - 13, ey); g.closePath();
+    g.fillStyle = '#fbf4ee'; g.fill(); g.clip();
+    g.fillStyle = '#3a2214'; g.beginPath(); g.arc(ex + s * 1, ey - 1, 6.5, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#0c0806'; g.beginPath(); g.arc(ex + s * 1, ey - 1, 3.2, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(ex + s * 3, ey - 3.5, 1.6, 0, Math.PI * 2); g.fill();
+    g.restore();
+    g.strokeStyle = '#140c08'; g.lineWidth = 3.2;
+    g.beginPath(); g.moveTo(ex - s * 13, ey + .5); g.quadraticCurveTo(ex, ey - 10.5, ex + s * 13, ey - .5); g.lineTo(ex + s * 17, ey - 4); g.stroke();
+    g.strokeStyle = 'rgba(110,60,45,.5)'; g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(ex - 10, ey - 12); g.quadraticCurveTo(ex, ey - 15, ex + 10, ey - 11); g.stroke();
+    g.beginPath(); g.moveTo(ex - 11, ey + 3.5); g.quadraticCurveTo(ex, ey + 7.5, ex + 11, ey + 3.5); g.stroke();
+  }
+  // mũi
+  g.strokeStyle = 'rgba(160,95,70,.55)'; g.lineWidth = 1.6;
+  g.beginPath(); g.moveTo(cx - 3, 128); g.quadraticCurveTo(cx - 5, 138, cx - 2, 141); g.stroke();
+  g.beginPath(); g.moveTo(cx - 7, 142); g.quadraticCurveTo(cx - 4, 145, cx, 143); g.quadraticCurveTo(cx + 4, 145, cx + 7, 142); g.stroke();
+  // môi
+  g.fillStyle = '#c23a48';
+  g.beginPath(); g.moveTo(cx - 12, 158); g.quadraticCurveTo(cx - 6, 152, cx, 155); g.quadraticCurveTo(cx + 6, 152, cx + 12, 158);
+  g.quadraticCurveTo(cx, 167, cx - 12, 158); g.closePath(); g.fill();
+  g.strokeStyle = '#7a1c26'; g.lineWidth = 1.2;
+  g.beginPath(); g.moveTo(cx - 11, 158); g.quadraticCurveTo(cx, 160, cx + 11, 158); g.stroke();
+  return toTex(c);
+}
+const faceMat = std({ map: faceTex(), roughness: .55 });
+const flowerMat = new THREE.MeshStandardMaterial({ color: 0xff9ab8, emissive: 0x401020, roughness: .5 });
+const goldMat = std({ color: 0xd4af37, metalness: .8, roughness: .3 });
+
+function makeFemale(rm, tm, im, upper, lower, head, wrap) {
+  part(GF.robe, im, lower);
+  part(GF.hem, tm, lower);
+  part(GF.torso, rm, upper);
+  part(GF.sash, tm, upper, 0, .05, 0);
+  for (const s of [-1, 1]) {
+    const e = part(GF.sashEnd, tm, upper, s * .03, .04, .148); e.rotation.set(-.35, 0, s * .12);
+  }
+  const col = part(GF.collar, tm, upper, 0, .52, 0); col.rotation.x = Math.PI / 2;
+  part(GF.neck, skinMat, upper);
+  const hg = new THREE.Group(); hg.position.y = .76; hg.scale.setScalar(.9); upper.add(hg);
+  part(GF.head, faceMat, hg).scale.set(.93, 1.05, .95);
+  for (const s of [-1, 1]) {
+    part(GF.lock, hairMat, hg, s * .128, -.02, .055).scale.set(.45, 2.1, .6);
+    part(GF.earring, goldMat, hg, s * .148, -.055, .01);
+  }
+  if (head === 'wrap') {
+    const cap = part(GF.cap, hairMat, hg, 0, .005, -.005); cap.rotation.x = -.7;
+    const w = part(G.wrap, cmat(wrap), hg, 0, .085, -.015); w.rotation.x = Math.PI / 2 - .25; w.scale.set(1.08, 1.08, 1.15);
+    part(GF.bun, hairMat, hg, 0, .04, -.16).scale.set(.9, .75, .7);
+  } else {
+    const cap = part(GF.cap, hairMat, hg, 0, .005, -.005); cap.rotation.x = -.7;
+    part(GF.bun, hairMat, hg, 0, .1, -.15).scale.set(1.15, .85, .9);
+    const coil = part(GF.coil, hairMat, hg, 0, .1, -.15); coil.rotation.x = .9;
+    const pin = part(G.pin, goldMat, hg, 0, .14, -.14); pin.rotation.z = Math.PI / 2;
+    [[0, .03], [.025, -.012], [-.025, -.012], [.018, .025], [-.018, .025]].forEach(([dx, dy], i) =>
+      part(GF.petal, i ? flowerMat : goldMat, hg, .11 + dx * .3, .13 + dy, -.07 + dx).scale.setScalar(i ? 1 : .6));
+  }
+  const arm = s => {
+    const sh = new THREE.Group(); sh.position.set(s * .2, .44, 0); upper.add(sh);
+    part(GF.shoulder, rm, sh, -s * .015, -.01, 0).scale.set(.85, .62, .8);
+    part(GF.upperArm, rm, sh);
+    const el = new THREE.Group(); el.position.y = -.3; sh.add(el);
+    const sl = part(GF.sleeve, rm, el); sl.material = cmat(rm.color.getHex(), { side: THREE.DoubleSide });
+    const hand = new THREE.Group(); hand.position.y = -.3; el.add(hand);
+    part(GF.wrist, skinMat, hand);
+    part(GF.hand, skinMat, hand);
+    return { sh, el, hand, s };
+  };
+  return { hg, L: arm(-1), R: arm(1) };
+}
 const matCache = new Map();
 function cmat(color, o = {}) {
   const k = color + JSON.stringify(o);
@@ -804,6 +929,10 @@ function makePerson({ robe, inner, trim = 0xd4af37, female = false, head = 'khan
   const root = new THREE.Group(), body = new THREE.Group(), lower = new THREE.Group(), upper = new THREE.Group();
   root.add(body); body.add(lower); body.add(upper); upper.position.y = 1.1;
   const rm = cmat(robe), tm = cmat(trim, { metalness: .4, roughness: .4 }), im = cmat(inner ?? robe);
+  if (female) {
+    const f = makeFemale(rm, tm, im, upper, lower, head, wrap);
+    return { root, body, lower, upper, head: f.hg, L: f.L, R: f.R, sit: 0, walk: 0 };
+  }
   part(female ? G.robeF : G.robeM, im, lower);
   part(female ? G.hemF : G.hemM, tm, lower);
   part(G.torso, rm, upper);
